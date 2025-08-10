@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini System Prompt Comparison</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        /* General container and form styling remains the same */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 1200px; /* Increased max-width for more columns */
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        input[type="text"],
+        input[type="password"],
+        input[type="number"],
+        input[type="file"],
+        select { /* Added select to general styling */
+            width: calc(100% - 22px); /* Account for padding and border */
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            box-sizing: border-box; /* Include padding and border in the element's total width and height */
+        }
+
+        input[type="file"] {
+            padding: 5px; /* Adjust padding for file input */
+        }
+
+        small {
+            display: block;
+            color: #777;
+            margin-top: 5px;
+            font-size: 0.9em;
+        }
+
+        button[type="submit"] {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            box-sizing: border-box;
+            transition: background-color 0.3s ease;
+        }
+
+        button[type="submit"]:hover {
+            background-color: #0056b3;
+        }
+
+        .flashes {
+            list-style-type: none;
+            padding: 0;
+            margin: 0 0 20px 0;
+        }
+
+        .flashes li {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        .flashes .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .flashes .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        /* --- Table specific styles --- */
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            table-layout: fixed; /* Important for consistent column widths with scrollable content */
+        }
+
+        .results-table th,
+        .results-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+            vertical-align: top; /* Align content to the top */
+            word-wrap: break-word; /* Ensure long words break within cell */
+        }
+
+        .results-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        .results-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+        .results-table pre {
+            margin: 0; /* Remove default margin for pre in table cell */
+            white-space: pre-wrap; /* Preserve whitespace and wrap long lines */
+            word-wrap: break-word;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+        }
+
+        /* Diff highlighting styles */
+        .diff-added {
+            background-color: #e6ffe6; /* Light green for added lines */
+            color: #008000; /* Dark green text */
+        }
+        .diff-removed {
+            background-color: #ffe6e6; /* Light red for removed lines */
+            color: #cc0000; /* Dark red text */
+        }
+        .diff-info {
+            background-color: #e0e0e0; /* Light gray for info lines (like '? ' from difflib) */
+            color: #555;
+        }
+        .diff-match {
+            color: #008000; /* Green for overall match status */
+            font-weight: bold;
+        }
+        .diff-mismatch {
+            color: #cc0000; /* Red for overall mismatch status */
+            font-weight: bold;
+        }
+
+        /* --- Scrollable Cells --- */
+        .scrollable-cell-content {
+            max-height: 500px; /* Adjust this value as needed */
+            overflow-y: auto;  /* Enable vertical scrollbar if content exceeds max-height */
+            padding-right: 5px; /* Add some padding to prevent text from touching scrollbar */
+        }
+
+        /* Set specific column widths to prevent content from stretching the table */
+        .results-table th:nth-child(1), .results-table td:nth-child(1) { width: 15%; } /* Input */
+        .results-table th:nth-child(2), .results-table td:nth-child(2) { width: 25%; } /* Output Sys 1 */
+        .results-table th:nth-child(3), .results-table td:nth-child(3) { width: 25%; } /* Output Sys 2 */
+        .results-table th:nth-child(4), .results-table td:nth-child(4) { width: 30%; } /* Comparison */
+        .results-table th:nth-child(5), .results-table td:nth-child(5) { width: 5%; }  /* Status */
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Gemini System Prompt Comparison</h1>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for category, message in messages %}
+                        <li class="{{ category }}">{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <form action="/" method="post" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="api_key">Gemini API Key:</label>
+                <input type="password" id="api_key" name="api_key" required placeholder="Enter your Gemini API key">
+            </div>
+
+            <div class="form-group">
+                <label for="gemini_model">Choose Gemini Model:</label>
+                <select id="gemini_model" name="gemini_model">
+                    {% for model in gemini_models %}
+                        <option value="{{ model }}" {% if model == selected_model %}selected{% endif %}>{{ model }}</option>
+                    {% endfor %}
+                </select>
+                <small>Select the Gemini model to use for generation.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="system_message_file_1">System Message 1 (TXT file):</label>
+                <input type="file" id="system_message_file_1" name="system_message_file_1" accept=".txt" required>
+                <small>Upload a .txt file for the first system message.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="system_message_file_2">System Message 2 (TXT file):</label>
+                <input type="file" id="system_message_file_2" name="system_message_file_2" accept=".txt" required>
+                <small>Upload a .txt file for the second system message.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="input_message_files">Input Messages (TXT files):</label>
+                <input type="file" id="input_message_files" name="input_message_files" accept=".txt" multiple required>
+                <small>Upload one or more .txt files for your input prompts. Each file will be run against both system messages.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="temperature">Temperature (0.0 - 2.0):</label>
+                <input type="number" id="temperature" name="temperature" step="0.01" min="0" max="2" value="0">
+                <small>Controls the randomness of the output. Higher values are more creative.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="top_p">Top P (0.0 - 1.0):</label>
+                <input type="number" id="top_p" name="top_p" step="0.01" min="0" max="1" value="0.95">
+                <small>Controls the diversity of the output. Filters tokens based on cumulative probability.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="top_k">Top K (Integer):</label>
+                <input type="number" id="top_k" name="top_k" step="1" min="1" value="64">
+                <small>Considers the top K most likely tokens.</small>
+            </div>
+
+            <button type="submit">Run System Prompt Comparison</button>
+        </form>
+
+        {% if results_table_data %}
+            <h2>Comparison Results:</h2>
+            <table class="results-table">
+                <thead>
+                    <tr>
+                        <th>Input</th>
+                        <th>Output (System 1)</th>
+                        <th>Output (System 2)</th>
+                        <th>Comparison</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in results_table_data %}
+                        <tr>
+                            <td><div class="scrollable-cell-content"><pre>{{ item.input_content }}</pre></div></td>
+                            <td><div class="scrollable-cell-content"><pre>{{ item.output_sys1_content }}</pre></div></td>
+                            <td><div class="scrollable-cell-content"><pre>{{ item.output_sys2_content }}</pre></div></td>
+                            <td><div class="scrollable-cell-content">{{ item.comparison_diff_html | safe }}</div></td> {# Use |safe filter here! #}
+                            <td class="{{ 'diff-match' if item.status == 'Match' else 'diff-mismatch' }}">{{ item.status }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+</body>
+</html>
