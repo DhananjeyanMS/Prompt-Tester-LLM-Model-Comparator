@@ -1,6 +1,3 @@
-Here’s the README content in plain text format (with Markdown syntax preserved) — you can copy and save it as `README.txt`:
-
-````
 # Gemini System Prompt Comparison Tool
 
 A Flask-based web application to compare outputs from Google's Gemini API using **two different system prompts**.  
@@ -129,6 +126,3 @@ pip install flask python-dotenv google-generativeai
   * Green: Added lines
   * Red: Removed lines
   * Grey: Change indicators
-
-Do you want me to also make a **ready-to-download `README.txt`** file from this so you don’t have to copy it manually?
-```
